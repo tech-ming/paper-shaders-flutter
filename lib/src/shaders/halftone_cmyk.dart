@@ -46,7 +46,7 @@ class HalftoneCmykParams {
     this.type = HalftoneCmykType.ink,
     this.sizing = const ShaderSizing.object(
       fit: ShaderFit.cover,
-      imageAspectRatio: _testImageAspectRatio,
+      imageAspectRatio: 1,
     ),
     this.speed = 0,
     this.frame = 0,
@@ -178,7 +178,7 @@ class HalftoneCmykShader {
 
   /// Static image samplers value.
   static const imageSamplers = <ShaderImageSampler>[
-    ShaderImageSampler.testImage,
+    ShaderImageSampler.transparent,
     ShaderImageSampler.noiseTexture,
   ];
 
@@ -285,5 +285,3 @@ class HalftoneCmykView extends StatelessWidget {
     );
   }
 }
-
-const double _testImageAspectRatio = 1500 / 1124;

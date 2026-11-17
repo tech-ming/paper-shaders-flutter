@@ -618,7 +618,7 @@ class _ShaderRail extends StatelessWidget {
           const Padding(
             padding: EdgeInsets.fromLTRB(20, 0, 20, 16),
             child: Text(
-              '29 shaders / 120 presets',
+              '30 shaders / 124 presets',
               style: TextStyle(color: Color(0xffa7ac97), fontSize: 12),
             ),
           ),
@@ -1522,13 +1522,13 @@ class _UniformControl extends StatelessWidget {
 
   Widget _buildColorControl() {
     final value = uniform is Float4Uniform
-        ? _colorFromPremultiplied((uniform as Float4Uniform).values)
+        ? _colorFromComponents((uniform as Float4Uniform).values)
         : Colors.white;
     return _ColorControl(
       label: spec.label,
       colors: [value],
       onColorChanged: (_, color) {
-        onChanged(Float4Uniform(_premultiplied(color)));
+        onChanged(Float4Uniform(_components(color)));
       },
     );
   }
@@ -1538,7 +1538,7 @@ class _UniformControl extends StatelessWidget {
         ? uniform as Float4ArrayUniform
         : const Float4ArrayUniform(<List<double>>[], capacity: 0);
     final colors = <Color>[
-      for (final item in value.values) _colorFromPremultiplied(item),
+      for (final item in value.values) _colorFromComponents(item),
     ];
     return _ColorControl(
       label: spec.label,
@@ -1550,7 +1550,7 @@ class _UniformControl extends StatelessWidget {
         final nextValues = <List<double>>[
           for (final item in value.values) List<double>.of(item),
         ];
-        nextValues[index] = _premultiplied(color);
+        nextValues[index] = _components(color);
         onChanged(Float4ArrayUniform(nextValues, capacity: value.capacity));
       },
     );
@@ -2075,6 +2075,7 @@ ShaderSizing _copySizing(
 
 bool _isSwitchSpec(String name) {
   return name == 'u_isImage' ||
+      name == 'u_clip' ||
       name == 'u_originalColors' ||
       name == 'u_inverted';
 }
@@ -2254,13 +2255,17 @@ String? _dartTypedArgument(String uniformName, ShaderUniform uniform) {
   if (_dartEnumBackedParameters.contains(parameter)) {
     return null;
   }
+  // 开关类 uniform 在参数类里是 bool
+  if (_isSwitchSpec(uniformName) && uniform is FloatUniform) {
+    return '$parameter: ${uniform.value > 0.5}';
+  }
 
   return switch (uniform) {
     FloatUniform(:final value) => '$parameter: ${_formatCodeNumber(value)}',
     Float4Uniform(:final values) =>
-      "$parameter: '${_hexColorFromPremultiplied(values)}'",
+      "$parameter: '${_hexColorFromComponents(values)}'",
     Float4ArrayUniform(:final values) when parameter == 'colors' =>
-      "colors: <String>[${values.map((value) => "'${_hexColorFromPremultiplied(value)}'").join(', ')}]",
+      "colors: <String>[${values.map((value) => "'${_hexColorFromComponents(value)}'").join(', ')}]",
     Float4ArrayUniform() => null,
     _ => null,
   };
@@ -2320,9 +2325,9 @@ String _dartUniformLiteral(ShaderUniform uniform) {
   return switch (uniform) {
     FloatUniform(:final value) => 'FloatUniform(${_formatCodeNumber(value)})',
     Float4Uniform(:final values) =>
-      "Float4Uniform.color('${_hexColorFromPremultiplied(values)}')",
+      "Float4Uniform.color('${_hexColorFromComponents(values)}')",
     Float4ArrayUniform(:final values, :final capacity) =>
-      "Float4ArrayUniform.colors(<String>[\n${values.map((value) => "      '${_hexColorFromPremultiplied(value)}',").join('\n')}\n    ], capacity: $capacity)",
+      "Float4ArrayUniform.colors(<String>[\n${values.map((value) => "      '${_hexColorFromComponents(value)}',").join('\n')}\n    ], capacity: $capacity)",
     _ => 'FloatUniform(0)',
   };
 }
@@ -2337,13 +2342,11 @@ String _formatCodeNumber(double value) {
   return value.toStringAsPrecision(6);
 }
 
-String _hexColorFromPremultiplied(List<double> values) {
+String _hexColorFromComponents(List<double> values) {
   final alpha = values.length > 3 ? values[3].clamp(0.0, 1.0) : 1.0;
-  final red = alpha == 0 ? 0.0 : (values.isNotEmpty ? values[0] / alpha : 0.0);
-  final green = alpha == 0
-      ? 0.0
-      : (values.length > 1 ? values[1] / alpha : 0.0);
-  final blue = alpha == 0 ? 0.0 : (values.length > 2 ? values[2] / alpha : 0.0);
+  final red = values.isNotEmpty ? values[0] : 0.0;
+  final green = values.length > 1 ? values[1] : 0.0;
+  final blue = values.length > 2 ? values[2] : 0.0;
   final components = <int>[
     (red.clamp(0.0, 1.0) * 255).round(),
     (green.clamp(0.0, 1.0) * 255).round(),
@@ -2359,23 +2362,20 @@ String _hexByte(int value) {
   return value.clamp(0, 255).toRadixString(16).padLeft(2, '0').toUpperCase();
 }
 
-Color _colorFromPremultiplied(List<double> values) {
-  final alpha = _clamp01(values.length > 3 ? values[3] : 1);
-  final red = alpha <= 0
-      ? 0.0
-      : _clamp01(values.isNotEmpty ? values[0] / alpha : 0);
-  final green = alpha <= 0
-      ? 0.0
-      : _clamp01(values.length > 1 ? values[1] / alpha : 0);
-  final blue = alpha <= 0
-      ? 0.0
-      : _clamp01(values.length > 2 ? values[2] / alpha : 0);
-  return Color.from(alpha: alpha, red: red, green: green, blue: blue);
+// uniform 里的颜色是未预乘的 RGBA（透明度由着色器自己乘）
+Color _colorFromComponents(List<double> values) {
+  double at(int index, double fallback) =>
+      _clamp01(values.length > index ? values[index] : fallback);
+  return Color.from(
+    alpha: at(3, 1),
+    red: at(0, 0),
+    green: at(1, 0),
+    blue: at(2, 0),
+  );
 }
 
-List<double> _premultiplied(Color color) {
-  final alpha = color.a;
-  return <double>[color.r * alpha, color.g * alpha, color.b * alpha, alpha];
+List<double> _components(Color color) {
+  return <double>[color.r, color.g, color.b, color.a];
 }
 
 double _clamp01(double value) {

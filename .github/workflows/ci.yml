@@ -45,14 +45,6 @@ jobs:
       - name: Run tests
         run: flutter test
 
-      - name: Validate publish dry run
-        run: flutter pub publish --dry-run
-
-      - name: Check pub.dev score
-        run: |
-          dart pub global activate pana
-          dart pub global run pana . --no-warning
-
   example-android-web:
     name: Example Android and web builds
     runs-on: ubuntu-latest

@@ -55,6 +55,7 @@ void main() {
   float steps = max(1., u_stepsPerColor);
 
   vec4 gradient = sn_colorAt(0);
+  gradient.rgb *= gradient.a;
   for (int i = 1; i < 10; i++) {
     if (i >= int(u_colorsCount)) break;
 
@@ -65,6 +66,7 @@ void main() {
     localM = steppedSmooth(localM, steps, .5 * u_softness, fwidthM);
 
     vec4 c = sn_colorAt(i);
+    c.rgb *= c.a;
     gradient = mix(gradient, c, localM);
   }
 
@@ -82,7 +84,9 @@ void main() {
     float fwidthM = ps_finiteFwidth(localM, localMX, localMY);
     localM = steppedSmooth(localM, steps, .5 * u_softness, fwidthM);
     vec4 cFst = sn_colorAt(0);
+    cFst.rgb *= cFst.a;
     vec4 cLast = sn_colorAt(int(u_colorsCount - 1.));
+    cLast.rgb *= cLast.a;
     gradient = mix(cLast, cFst, localM);
   }
 
@@ -90,5 +94,5 @@ void main() {
   float opacity = gradient.a;
   color += 1. / 256. * (fract(sin(dot(.014 * FlutterFragCoord().xy, vec2(12.9898, 78.233))) * 43758.5453123) - .5);
 
-  fragColor = vec4(color * opacity, opacity);
+  fragColor = vec4(color, opacity);
 }

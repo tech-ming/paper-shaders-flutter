@@ -34,7 +34,7 @@ class ImageDitheringParams {
     this.colorSteps = 2,
     this.sizing = const ShaderSizing.object(
       fit: ShaderFit.cover,
-      imageAspectRatio: _testImageAspectRatio,
+      imageAspectRatio: 1,
     ),
     this.speed = 0,
     this.frame = 0,
@@ -114,7 +114,7 @@ class ImageDitheringShader {
 
   /// Static image samplers value.
   static const imageSamplers = <ShaderImageSampler>[
-    ShaderImageSampler.flowersImage,
+    ShaderImageSampler.transparent,
   ];
 
   /// Static presets value.
@@ -202,5 +202,3 @@ class ImageDitheringView extends StatelessWidget {
     );
   }
 }
-
-const double _testImageAspectRatio = 1500 / 1124;

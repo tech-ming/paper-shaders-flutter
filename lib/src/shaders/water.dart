@@ -21,7 +21,7 @@ class WaterParams {
     this.sizing = const ShaderSizing.object(
       fit: ShaderFit.contain,
       scale: 0.8,
-      imageAspectRatio: _testImageAspectRatio,
+      imageAspectRatio: 1,
     ),
     this.speed = 1,
     this.frame = 0,
@@ -100,7 +100,7 @@ class WaterShader {
 
   /// Static image samplers value.
   static const imageSamplers = <ShaderImageSampler>[
-    ShaderImageSampler.testImage,
+    ShaderImageSampler.transparent,
   ];
 
   /// Static presets value.
@@ -117,7 +117,7 @@ class WaterShader {
         size: 0.7,
         sizing: ShaderSizing.object(
           fit: ShaderFit.cover,
-          imageAspectRatio: _testImageAspectRatio,
+          imageAspectRatio: 1,
         ),
         speed: 0.1,
       ),
@@ -134,7 +134,7 @@ class WaterShader {
         sizing: ShaderSizing.object(
           fit: ShaderFit.cover,
           scale: 3,
-          imageAspectRatio: _testImageAspectRatio,
+          imageAspectRatio: 1,
         ),
       ),
     ),
@@ -150,7 +150,7 @@ class WaterShader {
         sizing: ShaderSizing.object(
           fit: ShaderFit.contain,
           scale: 0.4,
-          imageAspectRatio: _testImageAspectRatio,
+          imageAspectRatio: 1,
         ),
         speed: 2,
       ),
@@ -197,5 +197,3 @@ class WaterView extends StatelessWidget {
     );
   }
 }
-
-const double _testImageAspectRatio = 1500 / 1124;

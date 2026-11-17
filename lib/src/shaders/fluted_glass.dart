@@ -62,7 +62,7 @@ class FlutedGlassParams {
     this.grainOverlay = 0,
     this.sizing = const ShaderSizing.object(
       fit: ShaderFit.cover,
-      imageAspectRatio: _testImageAspectRatio,
+      imageAspectRatio: 1,
     ),
     this.speed = 0,
     this.frame = 0,
@@ -190,7 +190,7 @@ class FlutedGlassShader {
 
   /// Static image samplers value.
   static const imageSamplers = <ShaderImageSampler>[
-    ShaderImageSampler.testImage,
+    ShaderImageSampler.transparent,
   ];
 
   /// Static presets value.
@@ -214,7 +214,7 @@ class FlutedGlassShader {
         sizing: ShaderSizing.object(
           fit: ShaderFit.cover,
           scale: 4,
-          imageAspectRatio: _testImageAspectRatio,
+          imageAspectRatio: 1,
         ),
       ),
     ),
@@ -233,7 +233,7 @@ class FlutedGlassShader {
         sizing: ShaderSizing.object(
           fit: ShaderFit.cover,
           scale: 1.2,
-          imageAspectRatio: _testImageAspectRatio,
+          imageAspectRatio: 1,
         ),
       ),
     ),
@@ -297,5 +297,3 @@ class FlutedGlassView extends StatelessWidget {
     );
   }
 }
-
-const double _testImageAspectRatio = 1500 / 1124;

@@ -179,8 +179,8 @@ vec2 ps_patternPixelStepY() {
   return ps_patternUVAt(pos + vec2(0.0, 1.0)) - ps_patternUVAt(pos);
 }
 
-vec2 ps_imageUV() {
-  vec2 uv = ps_baseUV();
+vec2 ps_imageUVAt(vec2 pos) {
+  vec2 uv = ps_baseUVAt(pos);
   vec2 boxOrigin = vec2(0.5 - u_originX, u_originY - 0.5);
   float r = u_rotation * 3.14159265358979323846 / 180.0;
   mat2 graphicRotation = mat2(cos(r), sin(r), -sin(r), cos(r));
@@ -209,6 +209,19 @@ vec2 ps_imageUV() {
   imageUV += 0.5;
   imageUV.y = 1.0 - imageUV.y;
   return imageUV;
+}
+
+vec2 ps_imageUV() {
+  return ps_imageUVAt(FlutterFragCoord().xy);
+}
+
+// 图片 UV 对屏幕坐标是仿射的，相邻像素之差就是精确导数（代替 dFdx / dFdy）
+vec2 ps_imagePixelStepX() {
+  return ps_imageUVAt(vec2(1.0, 0.0)) - ps_imageUVAt(vec2(0.0));
+}
+
+vec2 ps_imagePixelStepY() {
+  return ps_imageUVAt(vec2(0.0, 1.0)) - ps_imageUVAt(vec2(0.0));
 }
 
 #endif

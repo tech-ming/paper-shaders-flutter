@@ -1,9 +1,11 @@
-/// Paper Shaders Flutter public API.
+/// Paper Shaders 的 Flutter 公开接口。
 library;
 
+export 'src/shader_cache.dart';
 export 'src/shader_catalog.dart';
 export 'src/shader_color.dart';
 export 'src/shader_mount.dart';
+export 'src/shader_renderer.dart';
 export 'src/shader_sampler.dart';
 export 'src/shader_sizing.dart';
 export 'src/shader_uniforms.dart';
@@ -19,6 +21,7 @@ export 'src/shaders/halftone_cmyk.dart';
 export 'src/shaders/halftone_dots.dart';
 export 'src/shaders/heatmap.dart';
 export 'src/shaders/image_dithering.dart';
+export 'src/shaders/lens_distortion.dart';
 export 'src/shaders/liquid_metal.dart';
 export 'src/shaders/mesh_gradient.dart';
 export 'src/shaders/metaballs.dart';

@@ -10,6 +10,45 @@ void main() {
     expect(color.a, closeTo(0.8, 0.001));
   });
 
+  test('parses shorthand hex, rgb and hsl colors', () {
+    final shorthand = ShaderColor.parse('#369');
+    expect(shorthand.r, closeTo(0.2, 0.001));
+    expect(shorthand.a, closeTo(1, 0.001));
+
+    final rgb = ShaderColor.parse('rgb(51, 102, 153)');
+    expect(rgb.b, closeTo(0.6, 0.001));
+    expect(rgb.a, closeTo(1, 0.001));
+
+    final rgba = ShaderColor.parse('rgba(255, 0, 0, 0.25)');
+    expect(rgba.r, closeTo(1, 0.001));
+    expect(rgba.a, closeTo(0.25, 0.001));
+
+    final hsl = ShaderColor.parse('hsl(210, 50%, 40%)');
+    expect(hsl.r, closeTo(0.2, 0.01));
+    expect(hsl.g, closeTo(0.4, 0.01));
+    expect(hsl.b, closeTo(0.6, 0.01));
+  });
+
+  test('falls back to gray on unsupported or malformed colors', () {
+    for (final value in <String>['', 'red', '#12', '#gggggg', 'rgb(1,2)']) {
+      expect(ShaderColor.parse(value).r, closeTo(0.5, 0.001), reason: value);
+      expect(ShaderColor.parse(value).a, closeTo(1, 0.001), reason: value);
+    }
+  });
+
+  test('color uniforms carry straight (non-premultiplied) components', () {
+    // 透明度由着色器自己乘，这里预乘会乘两次
+    final single = Float4Uniform.color('#ff000080');
+    expect(single.values[0], closeTo(1, 0.001));
+    expect(single.values[3], closeTo(128 / 255, 0.001));
+
+    final array = Float4ArrayUniform.colors(const <String>[
+      '#00ff0040',
+    ], capacity: 2);
+    expect(array.values.single[1], closeTo(1, 0.001));
+    expect(array.values.single[3], closeTo(64 / 255, 0.001));
+  });
+
   test('simplex-noise exposes upstream presets', () {
     expect(SimplexNoiseShader.presets.map((preset) => preset.name), <String>[
       'Default',
@@ -70,7 +109,7 @@ void main() {
       'Vintage',
     ]);
     expect(HalftoneCmykShader.imageSamplers, <ShaderImageSampler>[
-      ShaderImageSampler.testImage,
+      ShaderImageSampler.transparent,
       ShaderImageSampler.noiseTexture,
     ]);
   });
@@ -78,13 +117,25 @@ void main() {
   test('paper-texture exposes upstream presets and image samplers', () {
     expect(PaperTextureShader.presets.map((preset) => preset.name), <String>[
       'Default',
-      'Cardboard',
-      'Abstract',
-      'Details',
+      'Spread',
+      'Creased',
+      'Flat',
     ]);
     expect(PaperTextureShader.imageSamplers, <ShaderImageSampler>[
-      ShaderImageSampler.testImage,
+      ShaderImageSampler.transparent,
       ShaderImageSampler.noiseTexture,
+    ]);
+  });
+
+  test('lens-distortion exposes upstream presets and image sampler', () {
+    expect(LensDistortionShader.presets.map((preset) => preset.name), <String>[
+      'Default',
+      'Fisheye',
+      'Duotone',
+      'Smoke',
+    ]);
+    expect(LensDistortionShader.imageSamplers, <ShaderImageSampler>[
+      ShaderImageSampler.transparent,
     ]);
   });
 
@@ -122,7 +173,7 @@ void main() {
       'Round and square',
     ]);
     expect(HalftoneDotsShader.imageSamplers, <ShaderImageSampler>[
-      ShaderImageSampler.flowersImage,
+      ShaderImageSampler.transparent,
     ]);
   });
 
@@ -144,7 +195,7 @@ void main() {
       'Natural',
     ]);
     expect(ImageDitheringShader.imageSamplers, <ShaderImageSampler>[
-      ShaderImageSampler.flowersImage,
+      ShaderImageSampler.transparent,
     ]);
   });
 
@@ -309,7 +360,7 @@ void main() {
       'Streaming',
     ]);
     expect(WaterShader.imageSamplers, <ShaderImageSampler>[
-      ShaderImageSampler.testImage,
+      ShaderImageSampler.transparent,
     ]);
   });
 
@@ -321,7 +372,7 @@ void main() {
       'Folds',
     ]);
     expect(FlutedGlassShader.imageSamplers, <ShaderImageSampler>[
-      ShaderImageSampler.testImage,
+      ShaderImageSampler.transparent,
     ]);
   });
 
@@ -356,6 +407,7 @@ void main() {
       'warp',
       'water',
       'fluted-glass',
+      'lens-distortion',
     ]);
     expect(
       ShaderCatalog.all[1].imageSamplers.single.assetKey,
@@ -375,6 +427,7 @@ void main() {
         'halftone-cmyk',
         'halftone-dots',
         'image-dithering',
+        'lens-distortion',
         'paper-texture',
         'static-mesh-gradient',
         'static-radial-gradient',

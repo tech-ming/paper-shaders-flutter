@@ -46,10 +46,6 @@ allowed_fail_ratio() {
     liquid-metal--backdrop.png) echo "0.02" ;;
     liquid-metal--default.png) echo "0.03" ;;
     liquid-metal--stripes.png) echo "0.04" ;;
-    paper-texture--abstract.png) echo "0.18" ;;
-    paper-texture--cardboard.png) echo "0.06" ;;
-    paper-texture--default.png) echo "0.05" ;;
-    paper-texture--details.png) echo "0.03" ;;
     pulsing-border--default.png) echo "0.07" ;;
     pulsing-border--northern-lights.png) echo "0.13" ;;
     # fwidth(float) is replaced by a deterministic derivative helper in Flutter

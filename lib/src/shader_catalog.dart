@@ -13,6 +13,7 @@ import 'shaders/halftone_cmyk.dart';
 import 'shaders/halftone_dots.dart';
 import 'shaders/heatmap.dart';
 import 'shaders/image_dithering.dart';
+import 'shaders/lens_distortion.dart';
 import 'shaders/liquid_metal.dart';
 import 'shaders/mesh_gradient.dart';
 import 'shaders/metaballs.dart';
@@ -121,5 +122,6 @@ class ShaderCatalog {
     WarpShader.catalogEntry,
     WaterShader.catalogEntry,
     FlutedGlassShader.catalogEntry,
+    LensDistortionShader.catalogEntry,
   ];
 }

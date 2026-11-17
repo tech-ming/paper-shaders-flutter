@@ -24,8 +24,8 @@ for source in "$source_dir"/*--default.png; do
   count=$((count + 1))
 done
 
-if [[ "$count" -ne 29 ]]; then
-  echo "Expected 29 thumbnails, generated $count" >&2
+if [[ "$count" -ne 30 ]]; then
+  echo "Expected 30 thumbnails, generated $count" >&2
   exit 1
 fi
 

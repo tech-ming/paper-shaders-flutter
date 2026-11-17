@@ -5,7 +5,8 @@ repo_root="$(cd "$(dirname "$0")/.." && pwd)"
 example_dir="$repo_root/example"
 app_path="$example_dir/build/macos/Build/Products/Debug/paper_shaders_example.app"
 app_bin="$app_path/Contents/MacOS/paper_shaders_example"
-output_dir="$repo_root/build/flutter-goldens"
+# 与比对脚本共用输出目录，避免自定义目录时读到旧结果。
+output_dir="${PARITY_OUT:-$repo_root/build/flutter-goldens}"
 
 cd "$example_dir"
 flutter build macos --debug >/dev/null

@@ -1,10 +1,12 @@
 name: paper_shaders
-description: Flutter runtime shader port of Paper Shaders with 29 GLSL effects.
-version: 0.0.3
-homepage: https://github.com/AndreFrelicot/paper-shaders-flutter
-repository: https://github.com/AndreFrelicot/paper-shaders-flutter
-issue_tracker: https://github.com/AndreFrelicot/paper-shaders-flutter/issues
-documentation: https://github.com/AndreFrelicot/paper-shaders-flutter#readme
+description: "Paper Shaders 的 Flutter 运行时着色器移植，提供 30 种效果、类型化参数、预设、共享资源缓存与离屏渲染，支持图片采样和多次材质合成。"
+version: 0.0.4
+# 本仓库是 fork，通过 git 依赖接入，不发布到 pub.dev。
+publish_to: none
+homepage: https://github.com/tech-ming/paper-shaders-flutter
+repository: https://github.com/tech-ming/paper-shaders-flutter
+issue_tracker: https://github.com/tech-ming/paper-shaders-flutter/issues
+documentation: https://github.com/tech-ming/paper-shaders-flutter#readme
 
 topics:
   - shaders
@@ -14,12 +16,12 @@ topics:
   - effects
 
 screenshots:
-  - description: "Preview grid of all 29 Paper Shaders Flutter effects."
+  - description: "Paper Shaders 部分效果的历史预览拼图。"
     path: doc/showcase-grid.jpg
 
 environment:
-  sdk: ^3.11.5
-  flutter: ">=3.41.0"
+  sdk: ^3.6.2
+  flutter: ">=3.27.0"
 
 platforms:
   android:
@@ -36,12 +38,9 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^6.0.0
+  flutter_lints: ^5.0.0
 
-# For information on the generic Dart part of this file, see the
-# following page: https://dart.dev/tools/pub/pubspec
-
-# The following section is specific to Flutter packages.
+# 声明随包提供的着色器与采样贴图。
 flutter:
   shaders:
     - shaders/dot_orbit.frag
@@ -73,10 +72,9 @@ flutter:
     - shaders/voronoi.frag
     - shaders/warp.frag
     - shaders/water.frag
+    - shaders/lens_distortion.frag
   assets:
-    - assets/flowers.webp
     - assets/gem_smoke.png
     - assets/heatmap.png
     - assets/liquid_metal.png
     - assets/noise.png
-    - assets/test_image.webp

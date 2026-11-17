@@ -36,6 +36,7 @@ shader_names=(
   heatmap
   image-dithering
   liquid-metal
+  lens-distortion
 )
 
 if ! command -v magick >/dev/null 2>&1; then
@@ -52,7 +53,6 @@ for name in "${shader_names[@]}"; do
   fi
   files+=("$file")
 done
-files+=("${files[0]}")
 
 mkdir -p "$(dirname "$output")"
 

@@ -2,15 +2,16 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
-import 'package:flutter/services.dart';
 
+import 'shader_cache.dart';
+import 'shader_paint.dart';
 import 'shader_sampler.dart';
 import 'shader_sizing.dart';
 import 'shader_uniforms.dart';
 
-/// Catalog metadata for the paper shader.
+/// 加载共享程序与采样贴图，并按参数绘制着色器。
 class PaperShader extends StatefulWidget {
-  /// Creates paper shader.
+  /// 创建着色器组件。
   const PaperShader({
     required this.assetKey,
     required this.uniforms,
@@ -22,31 +23,33 @@ class PaperShader extends StatefulWidget {
     super.key,
   });
 
-  /// Asset key.
+  /// 着色器程序的资产路径。
   final String assetKey;
 
-  /// Uniforms.
+  /// 按 GLSL 声明顺序排列的参数。
   final List<ShaderUniform> uniforms;
 
-  /// Image samplers.
+  /// 按 GLSL 声明顺序排列的采样贴图。
   final List<ShaderImageSampler> imageSamplers;
 
-  /// Sizing.
+  /// 画布与图片的映射设置。
   final ShaderSizing sizing;
 
-  /// Speed.
+  /// 动画速度；为零时固定在当前帧。
   final double speed;
 
-  /// Frame.
+  /// 初始时间，单位为毫秒。
   final double frame;
 
-  /// Whether the fragment output depends on the global time uniform.
+  /// 输出是否随时间变化；为假时关闭动画循环。
   final bool isAnimated;
 
   @override
+  /// 创建绘制状态。
   State<PaperShader> createState() => _PaperShaderState();
 }
 
+/// 管理异步资源加载与动画时间。
 class _PaperShaderState extends State<PaperShader>
     with SingleTickerProviderStateMixin {
   ui.FragmentProgram? _program;
@@ -58,6 +61,7 @@ class _PaperShaderState extends State<PaperShader>
   var _imageLoadId = 0;
 
   @override
+  /// 初始化时间、资源与动画循环。
   void initState() {
     super.initState();
     _frame = widget.frame;
@@ -74,12 +78,13 @@ class _PaperShaderState extends State<PaperShader>
   }
 
   @override
+  /// 更新资源来源与动画设置。
   void didUpdateWidget(PaperShader oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.assetKey != widget.assetKey) {
       _loadProgram();
     }
-    if (_imageSamplerKeysChanged(
+    if (_imageSamplerSourcesChanged(
       oldWidget.imageSamplers,
       widget.imageSamplers,
     )) {
@@ -102,16 +107,18 @@ class _PaperShaderState extends State<PaperShader>
   }
 
   @override
+  /// 停止动画，共享贴图仍由缓存或调用方持有。
   void dispose() {
     _ticker.dispose();
-    _disposeImages(_imageSamplers);
     super.dispose();
   }
 
+  /// 切换程序时清空旧引用，避免用旧程序绘制新参数。
   Future<void> _loadProgram() async {
     final loadId = ++_programLoadId;
+    _program = null;
     try {
-      final program = await ui.FragmentProgram.fromAsset(widget.assetKey);
+      final program = await PaperShaderCache.program(widget.assetKey);
       if (!mounted || loadId != _programLoadId) {
         return;
       }
@@ -128,7 +135,7 @@ class _PaperShaderState extends State<PaperShader>
           stack: stackTrace,
           library: 'paper_shaders',
           context: ErrorDescription(
-            'while loading fragment shader ${widget.assetKey}',
+            '加载着色器程序「${widget.assetKey}」时',
           ),
         ),
       );
@@ -138,8 +145,10 @@ class _PaperShaderState extends State<PaperShader>
     }
   }
 
+  /// 等待当前来源的全部贴图就绪，并忽略过期请求。
   Future<void> _loadImageSamplers() async {
     final loadId = ++_imageLoadId;
+    _imageSamplers = null;
     final samplers = widget.imageSamplers;
     if (samplers.isEmpty) {
       _replaceImages(const <ui.Image>[]);
@@ -147,17 +156,8 @@ class _PaperShaderState extends State<PaperShader>
     }
 
     try {
-      final images = <ui.Image>[];
-      for (final sampler in samplers) {
-        final bytes = await rootBundle.load(sampler.assetKey);
-        final codec = await ui.instantiateImageCodec(
-          bytes.buffer.asUint8List(),
-        );
-        final frame = await codec.getNextFrame();
-        images.add(frame.image);
-      }
+      final images = await PaperShaderCache.images(samplers);
       if (!mounted || loadId != _imageLoadId) {
-        _disposeImages(images);
         return;
       }
       _replaceImages(images);
@@ -170,33 +170,22 @@ class _PaperShaderState extends State<PaperShader>
           exception: error,
           stack: stackTrace,
           library: 'paper_shaders',
-          context: ErrorDescription('while loading shader image sampler'),
+          context: ErrorDescription('加载着色器采样贴图时'),
         ),
       );
       _replaceImages(null);
     }
   }
 
+  /// 更换贴图引用，所有权仍归缓存或调用方。
   void _replaceImages(List<ui.Image>? images) {
-    final oldImages = _imageSamplers;
     setState(() {
       _imageSamplers = images;
     });
-    if (oldImages != images) {
-      _disposeImages(oldImages);
-    }
   }
 
-  void _disposeImages(List<ui.Image>? images) {
-    if (images == null) {
-      return;
-    }
-    for (final image in images) {
-      image.dispose();
-    }
-  }
-
-  bool _imageSamplerKeysChanged(
+  /// 采样器来源是否变了：资产贴图按资源键，动态贴图按引用（调用方换图后重新取值）
+  bool _imageSamplerSourcesChanged(
     List<ShaderImageSampler> previous,
     List<ShaderImageSampler> next,
   ) {
@@ -204,13 +193,14 @@ class _PaperShaderState extends State<PaperShader>
       return true;
     }
     for (var i = 0; i < previous.length; i += 1) {
-      if (previous[i].assetKey != next[i].assetKey) {
+      if (!previous[i].sameSource(next[i])) {
         return true;
       }
     }
     return false;
   }
 
+  /// 按实际间隔推进动画时间。
   void _tick(Duration elapsed) {
     final last = _lastElapsed ?? elapsed;
     _lastElapsed = elapsed;
@@ -223,10 +213,11 @@ class _PaperShaderState extends State<PaperShader>
     });
   }
 
+  /// 仅时间相关且速度非零时启用动画。
   bool get _animationActive => widget.isAnimated && widget.speed != 0;
 
   @override
-  /// Builds the shader widget.
+  /// 资源齐备后绘制，加载期间输出透明。
   Widget build(BuildContext context) {
     final program = _program;
     final imageSamplers = _imageSamplers;
@@ -246,7 +237,9 @@ class _PaperShaderState extends State<PaperShader>
   }
 }
 
+/// 将已加载的资源交给共用绘制函数。
 class _PaperShaderPainter extends CustomPainter {
+  /// 创建当前帧的绘制器。
   const _PaperShaderPainter({
     required this.program,
     required this.uniforms,
@@ -257,54 +250,32 @@ class _PaperShaderPainter extends CustomPainter {
 
   final ui.FragmentProgram program;
 
-  /// Uniforms.
+  /// 当前效果参数。
   final List<ShaderUniform> uniforms;
   final List<ui.Image> imageSamplers;
 
-  /// Sizing.
+  /// 画布与图片的映射设置。
   final ShaderSizing sizing;
 
-  /// Frame.
+  /// 当前时间，单位为毫秒。
   final double frame;
 
   @override
+  /// 绘制当前帧。
   void paint(Canvas canvas, Size size) {
-    if (size.isEmpty) {
-      return;
-    }
-
-    final shader = program.fragmentShader();
-    var index = 0;
-    shader.setFloat(index++, size.width);
-    shader.setFloat(index++, size.height);
-    shader.setFloat(index++, 1);
-    shader.setFloat(index++, frame * 0.001);
-    shader.setFloat(index++, sizing.fit.uniformValue);
-    shader.setFloat(index++, sizing.scale);
-    shader.setFloat(index++, sizing.rotation);
-    shader.setFloat(index++, sizing.originX);
-    shader.setFloat(index++, sizing.originY);
-    shader.setFloat(index++, sizing.offsetX);
-    shader.setFloat(index++, sizing.offsetY);
-    shader.setFloat(index++, sizing.worldWidth);
-    shader.setFloat(index++, sizing.worldHeight);
-    shader.setFloat(index++, sizing.imageAspectRatio);
-
-    for (final uniform in uniforms) {
-      index = uniform.write(shader, index);
-    }
-    for (
-      var samplerIndex = 0;
-      samplerIndex < imageSamplers.length;
-      samplerIndex += 1
-    ) {
-      shader.setImageSampler(samplerIndex, imageSamplers[samplerIndex]);
-    }
-
-    canvas.drawRect(Offset.zero & size, Paint()..shader = shader);
+    paintPaperShader(
+      canvas,
+      size,
+      program: program,
+      uniforms: uniforms,
+      imageSamplers: imageSamplers,
+      sizing: sizing,
+      frame: frame,
+    );
   }
 
   @override
+  /// 视觉输入变化时重新绘制。
   bool shouldRepaint(covariant _PaperShaderPainter oldDelegate) {
     return oldDelegate.program != program ||
         oldDelegate.frame != frame ||

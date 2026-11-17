@@ -34,7 +34,7 @@ class Float4Uniform implements ShaderUniform {
 
   /// Creates float4 uniform.
   factory Float4Uniform.color(String color) {
-    return Float4Uniform(ShaderColor.parse(color).premultiplied);
+    return Float4Uniform(ShaderColor.parse(color).components);
   }
 
   /// Writes the four-component value into the shader.
@@ -61,7 +61,7 @@ class Float4ArrayUniform implements ShaderUniform {
     required int capacity,
   }) {
     return Float4ArrayUniform(
-      colors.map((color) => ShaderColor.parse(color).premultiplied).toList(),
+      colors.map((color) => ShaderColor.parse(color).components).toList(),
       capacity: capacity,
     );
   }

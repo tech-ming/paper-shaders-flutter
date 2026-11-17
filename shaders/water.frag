@@ -16,12 +16,13 @@ uniform float u_size;
 out vec4 fragColor;
 
 float waterGetUvFrame(vec2 uv) {
-  float aa = 2. * ps_pixelDerivative(1.0);
+  // 上游对扭曲后的 UV 求 fwidth；这里用未扭曲的图片 UV 导数近似
+  vec2 aa = 2. * (abs(ps_imagePixelStepX()) + abs(ps_imagePixelStepY()));
 
-  float left = smoothstep(0., aa, uv.x);
-  float right = 1.0 - smoothstep(1. - aa, 1., uv.x);
-  float bottom = smoothstep(0., aa, uv.y);
-  float top = 1.0 - smoothstep(1. - aa, 1., uv.y);
+  float left = smoothstep(0., aa.x, uv.x);
+  float right = 1.0 - smoothstep(1. - aa.x, 1., uv.x);
+  float bottom = smoothstep(0., aa.y, uv.y);
+  float top = 1.0 - smoothstep(1. - aa.y, 1., uv.y);
 
   return left * right * bottom * top;
 }
@@ -58,7 +59,9 @@ void main() {
 
   float causticNoise = waterGetCausticNoise(patternUV + u_waves * vec2(1., -1.) * wavesNoise, 2. * t, 1.5);
 
-  causticNoise += u_layering * waterGetCausticNoise(patternUV + 2. * u_waves * vec2(1., -1.) * wavesNoise, 1.5 * t, 2.);
+  if (u_layering > 0.) {
+    causticNoise += u_layering * waterGetCausticNoise(patternUV + 2. * u_waves * vec2(1., -1.) * wavesNoise, 1.5 * t, 2.);
+  }
   causticNoise = causticNoise * causticNoise;
 
   float edgesDistortion = smoothstep(0., .1, imageUV.x);
@@ -79,14 +82,12 @@ void main() {
   vec4 backColor = u_colorBack;
   backColor.rgb *= backColor.a;
 
-  vec3 color = mix(backColor.rgb, image.rgb, image.a * frame);
+  vec3 color = backColor.rgb * (1. - image.a * frame) + image.rgb * frame;
   float opacity = backColor.a + image.a * frame;
-
-  causticNoise = max(-.2, causticNoise);
 
   float hightlight = .025 * u_highlights * causticNoise;
   hightlight *= u_colorHighlight.a;
-  color = mix(color, u_colorHighlight.rgb, .05 * u_highlights * causticNoise);
+  color = mix(color, u_colorHighlight.rgb, .05 * u_highlights * causticNoise * u_colorHighlight.a);
   opacity += hightlight;
 
   color += hightlight * (.5 + .5 * wavesNoise);
